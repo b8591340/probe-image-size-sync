@@ -1,27 +1,21 @@
 probe-image-size
 ================
 
-[![CI](https://github.com/nodeca/probe-image-size/workflows/CI/badge.svg?branch=master)](https://github.com/nodeca/probe-image-size/actions)
-[![NPM version](https://img.shields.io/npm/v/probe-image-size.svg?style=flat)](https://www.npmjs.org/package/probe-image-size)
-[![Coverage Status](https://coveralls.io/repos/github/nodeca/probe-image-size/badge.svg?branch=master)](https://coveralls.io/github/nodeca/probe-image-size?branch=master)
+A fork of [https://github.com/nodeca/probe-image-size](https://github.com/nodeca/probe-image-size) without network utilities and no dependencies. Original probe-image-size depends on 7 packages. This package has no dependencies.
 
-> Get image size without full download. Supported image types:
-> JPG, GIF, PNG, WebP, BMP, TIFF, SVG, PSD, ICO, AVIF, HEIC, HEIF.
-
-Key features:
-
-- small size, no heavy dependencies
-- works with remote and local data
-- effective with big images (speed/memory), download minimal data from remotes
+- small size, **no dependencies**
+- works with local data only
+- effective with big images (speed/memory)
 - extracts orientation value when available
 - easy to browserify (splitted to components)
+- works in browser and node
 
 
 Install
 -------
 
 ```bash
-npm install probe-image-size
+npm install probe-image-size-sync
 ```
 
 Example
@@ -30,8 +24,8 @@ Example
 ```js
 const probe = require('probe-image-size');
 
-// Get by URL
-let result = await probe('http://example.com/image.jpg');
+// imageBytes is a Uint8Array with image bytes.
+let result = await probe.sync(imageBytes);
 console.log(result); // =>
 /*
   {
@@ -45,18 +39,7 @@ console.log(result); // =>
   }
 */
 
-
-// By URL with options
-let result = await probe('http://example.com/image.jpg', { rejectUnauthorized: false });
-console.log(result);
-
-
-// From the stream
-let result = await probe(require('fs').createReadStream('image.jpg'));
-console.log(result);
-
-
-// From a Buffer (sync)
+// From a Buffer in node
 let data = require('fs').readFileSync('image.jpg');
 console.log(probe.sync(data));
 ```
@@ -65,22 +48,11 @@ console.log(probe.sync(data));
 API
 ---
 
-Note:
 
-- You can access/browserify `stream.js` / `http.js` / `sync.js` directly.
-- If you don't like `http.js` dependencies, you can create your own wrapper
-  for `stream.js`.
+### probe.sync(src) -> result|null
 
-### probe(src [, options|keepOpen]) -> Promise
-
-- `src` can be of this types:
-  - _String_ - URL to fetch
-  - _Stream_ - readable stream
-- `options` - HTTP only. See [`needle` documentation](https://github.com/tomas/needle#request-options), and customized [defaults](https://github.com/nodeca/probe-image-size/blob/master/http.js#L13).
-- `keepOpen` (Boolean) - stream only. Keep stream open after parser finishes
-  (input stream will be closed by default)
-
-`result` (Promise) contains:
+Sync version can eat arrays, typed arrays and buffers. On fail it returns null.
+On success it returns the following object:
 
 ```js
 {
@@ -109,30 +81,12 @@ wish to apply afterwards depending on browser support (browsers
 [only support JPEG](https://zpl.fi/exif-orientation-in-different-formats/) orientation for now).
 See [known issues](known_issues.md) for details.
 
-Returned errors can be extended with 2 fields:
-
-- `code` - equals to `ECONTENT` if the library failed to parse the file;
-- `status` - equals to a HTTP status code if it receives a non-200 response.
-
-
-### probe.sync(src) -> result|null
-
-Sync version can eat arrays, typed arrays and buffers. On success it returns
-the same result as async version. On fail it returns null.
-
 __Note.__ Formats like JPEG & TIFF can store size anywhere (far from the head).
 That usually does not happens, but if you need guarantees - always provide full
-file content to sync methods. We strongly recommend to use async version
-as memory-friendly.
-
+file content to sync methods. 
 
 Similar projects
 ----------------
 
 - [image-size](https://github.com/netroy/image-size)
 
-
-Support probe-image-size
-------------------------
-
-You can support this project via [Tidelift subscription](https://tidelift.com/subscription/pkg/npm-probe-image-size?utm_source=npm-probe-image-size&utm_medium=referral&utm_campaign=readme).

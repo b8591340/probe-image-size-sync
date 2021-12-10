@@ -15,7 +15,7 @@ Install
 -------
 
 ```bash
-npm install probe-image-size-sync
+npm install github:chebum/probe-image-size
 ```
 
 Example

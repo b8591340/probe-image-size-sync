@@ -1,28 +1,34 @@
-'use strict';
+import parsers from "./lib/parsers_sync.js";
 
-
-var parsers = require('./lib/parsers_sync');
-
-
-function probeBuffer(buffer) {
-  var parser_names = Object.keys(parsers);
-
-  for (var i = 0; i < parser_names.length; i++) {
-    var result = parsers[parser_names[i]](buffer);
-
-    if (result) return result;
-  }
-
-  return null;
+export async function probe(buffer) {
+	try {
+		return await Promise.any(
+			Object.values(parsers).map(
+				(func) =>
+					new Promise((resolve, reject) => {
+						const result = func(buffer);
+						if (result) {
+							resolve(result);
+						} else {
+							reject();
+						}
+					})
+			)
+		);
+	} catch {
+		return null;
+	}
 }
 
+export function probeType(buffer, mimeType) {
+	const func = parsers[mimeType.split("/")[1]];
+	return func?.(buffer) || null;
+}
 
-///////////////////////////////////////////////////////////////////////
-// Exports
-//
-
-module.exports = function get_image_size(src) {
-  return probeBuffer(src);
-};
-
-module.exports.parsers = parsers;
+export function probeAll(buffer) {
+	for (const func of Object.values(parsers)) {
+		const result = func(buffer);
+		if (result) return result;
+	}
+	return null;
+}

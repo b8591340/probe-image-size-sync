@@ -16,17 +16,16 @@
     "svg",
     "psd"
   ],
+  "type": "module",
   "repository": "nodeca/probe-image-size",
   "license": "MIT",
   "files": [
     "index.js",
-    "http.js",
-    "stream.js",
     "sync.js",
     "lib/"
   ],
   "scripts": {
-    "test": "nyc mocha",
+    "test": "mocha",
     "coverage": "npm run test && nyc report --reporter html",
     "report-coveralls": "nyc --reporter=lcov mocha"
   },

@@ -1,4 +1,2 @@
-'use strict';
-
-module.exports.sync    = require('./sync');
-module.exports.Error   = require('./lib/common').ProbeError;
+export { probe, probeType, probeAll } from "./sync.js";
+export { ProbeError as Error } from "./lib/common.js";

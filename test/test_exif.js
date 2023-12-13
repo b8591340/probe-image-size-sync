@@ -1,65 +1,64 @@
+import assert from "node:assert";
+import fs from "node:fs";
+import path from "node:path";
+import exif from "../lib/exif_utils.js";
 
-'use strict';
+import { fileURLToPath } from "node:url";
 
-
-const assert  = require('assert');
-const fs      = require('fs');
-const path    = require('path');
-const exif    = require('../lib/exif_utils');
-
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 function fixture(s) {
-  return Buffer.from(
-    s.replace(/;.*/mg, '')
-      .match(/[0-9a-f]{2}/gi)
-      .map(i => parseInt(i, 16))
-  );
+	return Buffer.from(
+		s
+			.replace(/;.*/gm, "")
+			.match(/[0-9a-f]{2}/gi)
+			.map((i) => parseInt(i, 16))
+	);
 }
 
+describe("Exif parser", function () {
+	it("should iterate through exif", async function () {
+		let expected_exif_fields = {
+			"0:272:2:23": "image_blob_reduce test",
+			"0:274:3:1": [6],
+			"0:282:5:1": null,
+			"0:283:5:1": null,
+			"0:296:3:1": [2],
+			"0:531:3:1": [1],
+			"0:34853:4:1": [138],
+			"34853:0:1:4": [2, 3, 0, 0],
+			"34853:2:5:3": null,
+			"34853:4:5:3": null,
+			"1:513:4:1": [258],
+			"1:514:4:1": [658],
+		};
+		let image = fs.readFileSync(path.join(__dirname, "fixtures", "test.exif"));
+		let entries = {};
+		new exif.ExifParser(image, 0, image.length).each((entry) => {
+			entries[entry.ifd + ":" + entry.tag + ":" + entry.format + ":" + entry.count] = entry.value;
+		});
+		assert.deepEqual(entries, expected_exif_fields);
+	});
 
-describe('Exif parser', function () {
-  it('should iterate through exif', async function () {
-    let expected_exif_fields = {
-      '0:272:2:23': 'image_blob_reduce test',
-      '0:274:3:1': [ 6 ],
-      '0:282:5:1': null,
-      '0:283:5:1': null,
-      '0:296:3:1': [ 2 ],
-      '0:531:3:1': [ 1 ],
-      '0:34853:4:1': [ 138 ],
-      '34853:0:1:4': [ 2, 3, 0, 0 ],
-      '34853:2:5:3': null,
-      '34853:4:5:3': null,
-      '1:513:4:1': [ 258 ],
-      '1:514:4:1': [ 658 ]
-    };
-    let image   = fs.readFileSync(path.join(__dirname, 'fixtures', 'test.exif'));
-    let entries = {};
-    new exif.ExifParser(image, 0, image.length).each(entry => {
-      entries[entry.ifd + ':' + entry.tag + ':' + entry.format + ':' + entry.count] = entry.value;
-    });
-    assert.deepEqual(entries, expected_exif_fields);
-  });
+	it("should read all exif formats", async function () {
+		let expected_exif_fields = {
+			"0:50000:2:4": "abc",
+			"0:50001:1:2": [255, 34],
+			"0:50002:6:2": [-1, 34],
+			"0:50003:3:2": [65314, 13124],
+			"0:50004:8:2": [-222, 13124],
+			"0:50005:4:1": [4280431428],
+			"0:50006:9:1": [-14535868],
+			"0:50007:5:1": null,
+			"0:50008:10:1": null,
+			"0:50009:11:1": null,
+			"0:50010:12:1": null,
+			"0:50011:7:1": null,
+			"0:50012:255:1": null,
+		};
 
-
-  it('should read all exif formats', async function () {
-    let expected_exif_fields = {
-      '0:50000:2:4': 'abc',
-      '0:50001:1:2': [ 255, 34 ],
-      '0:50002:6:2': [ -1, 34 ],
-      '0:50003:3:2': [ 65314, 13124 ],
-      '0:50004:8:2': [ -222, 13124 ],
-      '0:50005:4:1': [ 4280431428 ],
-      '0:50006:9:1': [ -14535868 ],
-      '0:50007:5:1': null,
-      '0:50008:10:1': null,
-      '0:50009:11:1': null,
-      '0:50010:12:1': null,
-      '0:50011:7:1': null,
-      '0:50012:255:1': null
-    };
-
-    let data = fixture(`
+		let data = fixture(`
       4D 4D 00 2A ; TIFF signature
       00 00 00 08 ; next IFD
       ; = 0x08
@@ -80,22 +79,21 @@ describe('Exif parser', function () {
       00 00 00 00 ; next IFD
     `);
 
-    let entries = {};
-    new exif.ExifParser(data, 0, data.length).each(entry => {
-      entries[entry.ifd + ':' + entry.tag + ':' + entry.format + ':' + entry.count] = entry.value;
-    });
-    assert.deepEqual(entries, expected_exif_fields);
-  });
+		let entries = {};
+		new exif.ExifParser(data, 0, data.length).each((entry) => {
+			entries[entry.ifd + ":" + entry.tag + ":" + entry.format + ":" + entry.count] = entry.value;
+		});
+		assert.deepEqual(entries, expected_exif_fields);
+	});
 
+	it("should decode utf8 if possible", async function () {
+		let expected_exif_fields = {
+			"0:50000:2:3": "α",
+			"0:50001:2:3": "\xff\xff",
+			"0:50002:2:4": "αβ",
+		};
 
-  it('should decode utf8 if possible', async function () {
-    let expected_exif_fields = {
-      '0:50000:2:3': 'α',
-      '0:50001:2:3': '\xff\xff',
-      '0:50002:2:4': 'αβ'
-    };
-
-    let data = fixture(`
+		let data = fixture(`
       4D 4D 00 2A ; TIFF signature
       00 00 00 08 ; next IFD
       ; = 0x08
@@ -106,18 +104,17 @@ describe('Exif parser', function () {
       00 00 00 00 ; next IFD
     `);
 
-    let entries = {};
-    new exif.ExifParser(data, 0, data.length).each(entry => {
-      entries[entry.ifd + ':' + entry.tag + ':' + entry.format + ':' + entry.count] = entry.value;
-    });
-    assert.deepEqual(entries, expected_exif_fields);
-  });
+		let entries = {};
+		new exif.ExifParser(data, 0, data.length).each((entry) => {
+			entries[entry.ifd + ":" + entry.tag + ":" + entry.format + ":" + entry.count] = entry.value;
+		});
+		assert.deepEqual(entries, expected_exif_fields);
+	});
 
+	it("coverage - unexpected EOF", async function () {
+		let data;
 
-  it('coverage - unexpected EOF', async function () {
-    let data;
-
-    data = fixture(`
+		data = fixture(`
       4D 4D 00 2A ; TIFF signature
       00 00 00 08 ; next IFD
       ; = 0x08
@@ -125,11 +122,11 @@ describe('Exif parser', function () {
       C3
     `);
 
-    assert.throws(() => {
-      new exif.ExifParser(data, 0, data.length).each(() => {});
-    }, /unexpected EOF/);
+		assert.throws(() => {
+			new exif.ExifParser(data, 0, data.length).each(() => {});
+		}, /unexpected EOF/);
 
-    data = fixture(`
+		data = fixture(`
       4D 4D 00 2A ; TIFF signature
       00 00 00 08 ; next IFD
       ; = 0x08
@@ -137,11 +134,11 @@ describe('Exif parser', function () {
       C3 50 00 02 00
     `);
 
-    assert.throws(() => {
-      new exif.ExifParser(data, 0, data.length).each(() => {});
-    }, /unexpected EOF/);
+		assert.throws(() => {
+			new exif.ExifParser(data, 0, data.length).each(() => {});
+		}, /unexpected EOF/);
 
-    data = fixture(`
+		data = fixture(`
       4D 4D 00 2A ; TIFF signature
       00 00 00 08 ; next IFD
       ; = 0x08
@@ -149,23 +146,22 @@ describe('Exif parser', function () {
       C3 50 00 02 00 00 FF FF 00 00 00 00
     `);
 
-    assert.throws(() => {
-      new exif.ExifParser(data, 0, data.length).each(() => {});
-    }, /unexpected EOF/);
-  });
+		assert.throws(() => {
+			new exif.ExifParser(data, 0, data.length).each(() => {});
+		}, /unexpected EOF/);
+	});
 
+	it("should parse subIFDs", async function () {
+		let expected_exif_fields = {
+			"0:34665:4:1": [38],
+			"0:34853:4:1": [64],
+			"34665:40965:4:1": [78],
+			"34665:50001:2:4": "abc",
+			"34853:50002:2:4": "abc",
+			"40965:50003:2:4": "abc",
+		};
 
-  it('should parse subIFDs', async function () {
-    let expected_exif_fields = {
-      '0:34665:4:1': [ 38 ],
-      '0:34853:4:1': [ 64 ],
-      '34665:40965:4:1': [ 78 ],
-      '34665:50001:2:4': 'abc',
-      '34853:50002:2:4': 'abc',
-      '40965:50003:2:4': 'abc'
-    };
-
-    let data = fixture(`
+		let data = fixture(`
       49 49 2A 00 ; TIFF signature
       08 00 00 00 ; next IFD
       ; = 0x08
@@ -185,21 +181,20 @@ describe('Exif parser', function () {
       53 C3 02 00 04 00 00 00 61 62 63 00
     `);
 
-    let entries = {};
-    new exif.ExifParser(data, 0, data.length).each(entry => {
-      entries[entry.ifd + ':' + entry.tag + ':' + entry.format + ':' + entry.count] = entry.value;
-    });
-    assert.deepEqual(entries, expected_exif_fields);
-  });
+		let entries = {};
+		new exif.ExifParser(data, 0, data.length).each((entry) => {
+			entries[entry.ifd + ":" + entry.tag + ":" + entry.format + ":" + entry.count] = entry.value;
+		});
+		assert.deepEqual(entries, expected_exif_fields);
+	});
 
+	it("should not parse if subIFD offset is not a number", async function () {
+		let expected_exif_fields = {
+			"0:34665:2:1": "&",
+			"0:34853:2:1": "@",
+		};
 
-  it('should not parse if subIFD offset is not a number', async function () {
-    let expected_exif_fields = {
-      '0:34665:2:1': '&',
-      '0:34853:2:1': '@'
-    };
-
-    let data = fixture(`
+		let data = fixture(`
       49 49 2A 00 ; TIFF signature
       08 00 00 00 ; next IFD
       ; = 0x08
@@ -219,17 +214,16 @@ describe('Exif parser', function () {
       53 C3 02 00 04 00 00 00 61 62 63 00
     `);
 
-    let entries = {};
-    new exif.ExifParser(data, 0, data.length).each(entry => {
-      entries[entry.ifd + ':' + entry.tag + ':' + entry.format + ':' + entry.count] = entry.value;
-    });
-    assert.deepEqual(entries, expected_exif_fields);
-  });
+		let entries = {};
+		new exif.ExifParser(data, 0, data.length).each((entry) => {
+			entries[entry.ifd + ":" + entry.tag + ":" + entry.format + ":" + entry.count] = entry.value;
+		});
+		assert.deepEqual(entries, expected_exif_fields);
+	});
 
-
-  describe('get_orientation', function () {
-    it('should read exif orientation', async function () {
-      let data = fixture(`
+	describe("get_orientation", function () {
+		it("should read exif orientation", async function () {
+			let data = fixture(`
         49 49 2A 00 ; TIFF signature
         08 00 00 00 ; next IFD
         ; = 0x08
@@ -239,12 +233,11 @@ describe('Exif parser', function () {
         00 00 00 00 ; next IFD
       `);
 
-      assert.strictEqual(exif.get_orientation(data), 6);
-    });
+			assert.strictEqual(exif.get_orientation(data), 6);
+		});
 
-
-    it('should return 0 if no orientation tag', async function () {
-      let data = fixture(`
+		it("should return 0 if no orientation tag", async function () {
+			let data = fixture(`
         49 49 2A 00 ; TIFF signature
         08 00 00 00 ; next IFD
         ; = 0x08
@@ -253,13 +246,12 @@ describe('Exif parser', function () {
         00 00 00 00 ; next IFD
       `);
 
-      assert.strictEqual(exif.get_orientation(data), 0);
-    });
+			assert.strictEqual(exif.get_orientation(data), 0);
+		});
 
-
-    it('should return -1 on error', async function () {
-      let data = fixture('00 00 00 00');
-      assert.strictEqual(exif.get_orientation(data), -1);
-    });
-  });
+		it("should return -1 on error", async function () {
+			let data = fixture("00 00 00 00");
+			assert.strictEqual(exif.get_orientation(data), -1);
+		});
+	});
 });

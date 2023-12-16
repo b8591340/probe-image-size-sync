@@ -20,8 +20,13 @@ export async function probe(buffer) {
 	}
 }
 
-export function probeType(buffer, mimeType) {
+export function probeMime(buffer, mimeType) {
 	const func = parsers[mimeType.split("/")[1]];
+	return func?.(buffer) || null;
+}
+
+export function probeType(buffer, type) {
+	const func = parsers[type];
 	return func?.(buffer) || null;
 }
 
